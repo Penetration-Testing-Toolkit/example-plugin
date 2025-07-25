@@ -60,8 +60,7 @@ func (m *ModuleExample) setupRoutes() {
 }
 
 // helper is a function to help with rendering the templ component & responding
-func helper(ctx context.Context, comp templ.Component, status int,
-	header http.Header) (*shared.Response, error) {
+func helper(ctx context.Context, comp templ.Component, status int, header http.Header) (*shared.Response, error) {
 
 	resp := &bytes.Buffer{}
 	err := comp.Render(ctx, resp)
@@ -169,12 +168,14 @@ func (m *ModuleExample) index(ctx context.Context, req *http.Request) (*shared.R
 	}
 
 	// Note that we can pass an http.Header that will be seen from the frontend client
-	return helper(ctx, template.Example(req.Method, req.URL.String(),
-		username, userID, projectName, projectID,
-		userProjectSum.Sum, userSum.Sum, projectSum.Sum, pluginSum.Sum),
+	return helper(ctx,
+		template.Example(
+			req.Method, req.URL.String(), username, userID, projectName, projectID,
+			userProjectSum.Sum, userSum.Sum, projectSum.Sum, pluginSum.Sum),
 		http.StatusOK, http.Header{
-			"Example": {"Hello World!"},
-			"PTT-CSS": {"/plugin/" + info.ID + cssPath},
+			"Example":      {"Hello World!"},
+			"PTT-CSS":      {"/plugin/" + info.ID + cssPath},
+			"Content-Type": {"text/html"},
 		})
 }
 
@@ -199,7 +200,7 @@ func (m *ModuleExample) sum(ctx context.Context, req *http.Request) (*shared.Res
 			n, err := strconv.Atoi(strings.TrimSpace(v))
 			if err != nil {
 				return helper(ctx, template.Error("'"+v+"' is not an integer"),
-					http.StatusOK, nil)
+					http.StatusOK, http.Header{"Content-Type": {"text/html"}})
 			}
 			s += n
 		}
@@ -264,16 +265,16 @@ func (m *ModuleExample) sum(ctx context.Context, req *http.Request) (*shared.Res
 		return nil, err
 	}
 
-	return helper(ctx, template.Numbers(s, userProjectSum.Sum, userSum.Sum, projectSum.Sum, pluginSum.Sum, projectID),
-		http.StatusOK, nil)
+	return helper(ctx, template.Numbers(
+		s, userProjectSum.Sum, userSum.Sum, projectSum.Sum, pluginSum.Sum, projectID),
+		http.StatusOK, http.Header{"Content-Type": {"text/html"}})
 }
 
 // sse "GET /sse" example of a sse request.
 // Returns a Server-sent event rather than a templ component's HTML.
 // Requires special handling on the frontend.
 func (m *ModuleExample) sse(ctx context.Context, req *http.Request) (chan *shared.Response, error) {
-	m.logger.Trace("SSE request received by plugin implementation", "method", req.Method, "URL", req.URL.String(),
-		"protocol", req.Proto)
+	m.logger.Trace("SSE request received by plugin implementation", "method", req.Method, "URL", req.URL.String(), "protocol", req.Proto)
 
 	ch := make(chan *shared.Response, 1)
 	go func() {
